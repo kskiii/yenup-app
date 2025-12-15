@@ -80,6 +80,11 @@ func (f *Fetcher) FetchRate(date time.Time, base string, target string) (domain.
 	// base/target = EUR/target ÷ EUR/base
 	rateValue := eurToTarget / eurToBase
 
+	// If the rate is zero, return an error
+	if eurToBase == 0 {
+		return domain.Rate{}, fmt.Errorf("rate for %s is zero, cannot calculate cross rate", base)
+	}
+
 	return domain.Rate{
 		Base:   base,
 		Target: target,
