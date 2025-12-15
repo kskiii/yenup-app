@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"time"
 	"yenup/internal/domain/rate"
-	domain "yenup/internal/domain/rate"
 )
 
-// rateCheckUsecase is the interface for the rate check usecase
-type rateCheckUsecase interface {
-	CheckRates(date time.Time, base string, target string) (domain.Rate, error)
+// RateCheckUsecase is the interface for the rate check usecase
+type RateCheckUsecase interface {
+	CheckRates(base, target string) (*CheckRateResult, error)
+}
+
+// CheckRateResult is the result of checking the rate
+type CheckRateResult struct {
+	TodayRate     float64
+	YesterdayRate float64
+	IsNotified    bool
 }
 
 // RateChecker is the usecase for checking the rate
@@ -25,27 +31,41 @@ func NewRateChecker(repo rate.Repository, notifier rate.Notifier) *RateChecker {
 	}
 }
 
-func (r *RateChecker) CheckRates(base, target string) error {
+func (r *RateChecker) CheckRates(base, target string) (*CheckRateResult, error) {
 	today := time.Now()
 	yesterday := today.AddDate(0, 0, -1)
 
 	// Get rates from repository
 	todayRate, err := r.Repo.FetchRate(today, base, target)
 	if err != nil {
-		return fmt.Errorf("failed to fetch today's rate: %w", err)
+		return nil, fmt.Errorf("failed to fetch today's rate: %w", err)
 	}
 	yesterdayRate, err := r.Repo.FetchRate(yesterday, base, target)
 	if err != nil {
-		return fmt.Errorf("failed to fetch yesterday's rate: %w", err)
+		return nil, fmt.Errorf("failed to fetch yesterday's rate: %w", err)
 	}
 
 	if todayRate.Value < yesterdayRate.Value {
 		msg := fmt.Sprintf(
-			"CAD/JPY 上昇！昨日: %.4f -> 今日： %.4f",
+			"JPY Stronger Alert! %s/%s: Yesterday %.4f -> Today %.4f",
+			base,
+			target,
 			yesterdayRate.Value,
 			todayRate.Value,
 		)
-		return r.Notifier.Notify(msg)
+		err := r.Notifier.Notify(msg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to notify: %w", err)
+		}
+		return &CheckRateResult{
+			TodayRate:     todayRate.Value,
+			YesterdayRate: yesterdayRate.Value,
+			IsNotified:    true,
+		}, nil
 	}
-	return nil
+	return &CheckRateResult{
+		TodayRate:     todayRate.Value,
+		YesterdayRate: yesterdayRate.Value,
+		IsNotified:    false,
+	}, nil
 }
