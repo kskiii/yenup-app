@@ -9,11 +9,12 @@ import (
 	domain "yenup/internal/domain/rate"
 )
 
-// The response structure for time series data
+// APIResponse is the response structure for single date endpoint
 type APIResponse struct {
-	Success    bool                          `json:"success"`
-	Timeseries bool                          `json:"timeseries"`
-	Rates      map[string]map[string]float64 `json:"rates"`
+	Success bool               `json:"success"`
+	Base    string             `json:"base"`
+	Date    string             `json:"date"`
+	Rates   map[string]float64 `json:"rates"`
 }
 
 type Fetcher struct {
@@ -28,12 +29,17 @@ func NewFetcher(apiKey, url string) *Fetcher {
 	}
 }
 
-// FetchRates fetches yesterday's and today's JPY rate from CAD
+// FetchRate fetches the exchange rate for base/target by using EUR as intermediate
+// Since free plan only supports EUR as base, we calculate:
+// base/target = EUR/target ÷ EUR/base
+// Example: CAD/JPY = EUR/JPY ÷ EUR/CAD = 160 ÷ 1.5 = 106.67
 func (f *Fetcher) FetchRate(date time.Time, base string, target string) (domain.Rate, error) {
 	dateStr := date.Format("2006-01-02")
 
+	// Request both base and target currencies with EUR as base
+	// Example: symbols=CAD,JPY
 	fullUrl := fmt.Sprintf(
-		"%s%s?base=%s&symbols=%s&access_key=%s",
+		"%s%s?base=EUR&symbols=%s,%s&access_key=%s",
 		f.URL,
 		dateStr,
 		base,
@@ -43,33 +49,41 @@ func (f *Fetcher) FetchRate(date time.Time, base string, target string) (domain.
 
 	resp, err := http.Get(fullUrl)
 	if err != nil {
-		// HTTP request failed
 		return domain.Rate{}, fmt.Errorf("failed to fetch rate: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
 		return domain.Rate{}, fmt.Errorf("HTTP error: %s", resp.Status)
 	}
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
 
 	var data APIResponse
 	if err := json.Unmarshal(body, &data); err != nil {
-		// Failed to parse JSON
 		return domain.Rate{}, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	rateValue := data.Rates[date.Format("2006-01-02")][target]
+	// Get EUR/base and EUR/target rates
+	eurToBase := data.Rates[base]
+	eurToTarget := data.Rates[target]
 
-	Rate := domain.Rate{
+	// Validate rates exist
+	if eurToBase == 0 {
+		return domain.Rate{}, fmt.Errorf("rate for %s not found in response", base)
+	}
+	if eurToTarget == 0 {
+		return domain.Rate{}, fmt.Errorf("rate for %s not found in response", target)
+	}
+
+	// Calculate base/target rate
+	// base/target = EUR/target ÷ EUR/base
+	rateValue := eurToTarget / eurToBase
+
+	return domain.Rate{
 		Base:   base,
 		Target: target,
 		Value:  rateValue,
 		Date:   date,
-	}
-
-	return Rate, nil
+	}, nil
 }
