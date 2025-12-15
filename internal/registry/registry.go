@@ -1,4 +1,4 @@
-package registory
+package registry
 
 import (
 	"yenup/internal/config"
@@ -9,12 +9,12 @@ import (
 	usecase "yenup/internal/usecase"
 )
 
-type Registory struct {
+type Registry struct {
 	config     *config.Config
 	AppHandler *handler.Handler
 }
 
-func NewRegistory(cfg *config.Config) (*Registory, error) {
+func NewRegistry(cfg *config.Config) (*Registry, error) {
 	rateFetcher := rateRepo.NewFetcher(cfg.ExchangeRateAPIKey, cfg.ExchangeRateAPIURL)
 	slackNotifier := notifierRepo.NewSlackNotifier(cfg.SlackWebhookURL)
 
@@ -27,7 +27,7 @@ func NewRegistory(cfg *config.Config) (*Registory, error) {
 	// app handler
 	appHandler := handler.NewHandler(rateHandler)
 
-	return &Registory{
+	return &Registry{
 		config:     cfg,
 		AppHandler: appHandler,
 	}, nil

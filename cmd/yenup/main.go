@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"yenup/internal/config"
-	"yenup/internal/registory"
+	"yenup/internal/registry"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,13 +17,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// create registory from registory.go
-	reg, err := registory.NewRegistory(cfg)
+	// create registry from registry.go
+	reg, err := registry.NewRegistry(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// create app handler from registory
+	// create app handler from registry
 	appHandler := reg.AppHandler
 
 	// create router from gin
