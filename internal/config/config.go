@@ -10,8 +10,10 @@ type Config struct {
 	AppPort            string
 	BaseCurrency       string
 	TargetCurrency     string
+	APIProvider        string // "frankfurter" or "exchangerates"
 	ExchangeRateAPIKey string
 	ExchangeRateAPIURL string
+	FrankfurterAPIURL  string
 	SlackWebhookURL    string
 }
 
@@ -23,8 +25,10 @@ func Load() (*Config, error) {
 		AppPort:            getEnv("APP_PORT", "8080"),
 		BaseCurrency:       getEnv("BASE_CURRENCY", "CAD"),
 		TargetCurrency:     getEnv("TARGET_CURRENCY", "JPY"),
+		APIProvider:        getEnv("API_PROVIDER", "frankfurter"), // Default to frankfurter (free, no API key)
 		ExchangeRateAPIKey: getEnv("EXCHANGE_RATE_API_KEY", ""),
 		ExchangeRateAPIURL: getEnv("EXCHANGE_RATE_API_URL", ""),
+		FrankfurterAPIURL:  getEnv("FRANKFURTER_API_URL", "https://api.frankfurter.app/"),
 		SlackWebhookURL:    getEnv("SLACK_WEBHOOK_URL", ""),
 	}
 	return cfg, nil
