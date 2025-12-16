@@ -2,11 +2,12 @@ package registry
 
 import (
 	"yenup/internal/config"
+	domainRate "yenup/internal/domain/rate"
 	"yenup/internal/handler"
 	rateHandler "yenup/internal/handler/rate"
 	notifierRepo "yenup/internal/infrastructure/repository/notifier"
 	rateRepo "yenup/internal/infrastructure/repository/rate"
-	usecase "yenup/internal/usecase"
+	"yenup/internal/usecase"
 )
 
 type Registry struct {
@@ -15,7 +16,14 @@ type Registry struct {
 }
 
 func NewRegistry(cfg *config.Config) (*Registry, error) {
-	rateFetcher := rateRepo.NewFetcher(cfg.ExchangeRateAPIKey, cfg.ExchangeRateAPIURL)
+	// Select rate fetcher based on API_PROVIDER config
+	var rateFetcher domainRate.Repository
+	if cfg.APIProvider == "frankfurter" {
+		rateFetcher = rateRepo.NewFrankfurterFetcher(cfg.FrankfurterAPIURL)
+	} else {
+		rateFetcher = rateRepo.NewExchangeRatesFetcher(cfg.ExchangeRateAPIKey, cfg.ExchangeRateAPIURL)
+	}
+
 	slackNotifier := notifierRepo.NewSlackNotifier(cfg.SlackWebhookURL)
 
 	// usecase
