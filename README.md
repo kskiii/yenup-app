@@ -14,7 +14,7 @@ This project demonstrates the implementation of **Clean Architecture** and **Dep
 
 ## 🛠 Tech Stack
 
-- **Language**: Go 1.23+
+- **Language**: Go 1.24+
 - **Framework**: Gin (HTTP Web Framework)
 - **Architecture**: Clean Architecture (Handlers, Usecases, Domains, Repositories)
 - **Dependency Injection**: Registry pattern
@@ -61,7 +61,7 @@ graph LR
 
 ### Prerequisites
 
-- Go 1.23 or higher
+- Go 1.24 or higher
 - Slack Webhook URL (for notifications)
 
 ### Installation
