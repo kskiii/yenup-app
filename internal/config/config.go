@@ -22,7 +22,8 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		AppPort:            getEnv("APP_PORT", "8080"),
+		// Cloud Run sets PORT, but we also support APP_PORT for local dev
+		AppPort:            getEnv("PORT", getEnv("APP_PORT", "8080")),
 		BaseCurrency:       getEnv("BASE_CURRENCY", "CAD"),
 		TargetCurrency:     getEnv("TARGET_CURRENCY", "JPY"),
 		APIProvider:        getEnv("API_PROVIDER", "frankfurter"), // Default to frankfurter (free, no API key)

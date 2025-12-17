@@ -1,33 +1,33 @@
-# 1. Build stage: compile the Go app
-FROM golang:1.24 AS builder
+# 1. Build stage
+FROM golang:1.23 AS builder
 
 WORKDIR /app
 
-# Copy go.mod first
-COPY go.mod ./
+# Copy go module files
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Download modules
-RUN go mod download || true
-
-# Copy the rest of the source code
+# Copy source code
 COPY . .
 
-# Build the Go binary
-RUN go build -o yenup
+# Build
+# -o main: Output binary name
+# ./cmd/yenup/main.go: Entry point path
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o main ./cmd/yenup/main.go
 
-# 2. Run stage: minimal image
+# 2. Runtime stage
 FROM debian:bullseye-slim
+
+# Install CA certificates for HTTPS requests
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy the compiled binary from the builder
-COPY --from=builder /app/yenup .
+# Copy binary from builder
+COPY --from=builder /app/main .
 
-# Copy rate.json
-COPY rate.json .
+# Cloud Run sets the PORT env variable automatically (default 8080)
+EXPOSE 8080
 
-# Command to run the app
-CMD ["./yenup"]
-
-
-
+# Run the binary
+CMD ["./main"]
