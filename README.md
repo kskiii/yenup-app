@@ -2,7 +2,7 @@
 
 YenUp is a currency exchange rate monitoring tool built with Go. It checks the JPY exchange rate against a base currency (e.g., CAD) and sends Slack notifications when the Japanese Yen becomes stronger compared to the previous day.
 
-This project demonstrates the implementation of **Clean Architecture** and **Dependency Injection** in Go.
+This project demonstrates the implementation of **Clean Architecture** and **Dependency Injection** in Go, along with a modern **CI/CD pipeline** using Google Cloud Platform.
 
 ## 🚀 Features
 
@@ -10,6 +10,7 @@ This project demonstrates the implementation of **Clean Architecture** and **Dep
 - **Trend Alert**: Sends a Slack notification automatically when JPY strengthens (i.e., the base currency/JPY rate drops).
 - **Smart Calculation**: Implements cross-rate calculation (via EUR) to support free-tier limitations of exchange rate APIs.
 - **REST API**: Provides a RESTful endpoint to trigger checks manually and retrieve detailed rate data.
+- **Cloud Native**: Deployed on Google Cloud Run with automated daily checks via Cloud Scheduler.
 
 ## 🛠 Tech Stack
 
@@ -19,6 +20,8 @@ This project demonstrates the implementation of **Clean Architecture** and **Dep
 - **Dependency Injection**: Registry pattern
 - **External API**: exchangeratesapi.io / Frankfurter
 - **Notification**: Slack Incoming Webhook
+- **Infrastructure**: Google Cloud Run, Artifact Registry, Cloud Scheduler
+- **CI/CD**: GitHub Actions
 
 ## 🏗 Architecture
 
@@ -34,8 +37,25 @@ internal/
   ├── handler/      # HTTP handlers (Gin)
   ├── infrastructure/
   │   └── repository/ # External API & Slack implementation
-  └── registory/    # Dependency Injection container
+  └── registry/     # Dependency Injection container
 ```
+
+## 🚀 Deployment & CI/CD
+
+The application is deployed to **Google Cloud Run** using a continuous delivery pipeline.
+
+```mermaid
+graph LR
+  GitHub[GitHub Main] -->|Push| Actions[GitHub Actions]
+  Actions -->|Build| Docker[Docker Image]
+  Docker -->|Push| GAR[Artifact Registry]
+  GAR -->|Deploy| Run[Cloud Run]
+  Scheduler[Cloud Scheduler] -->|Daily Trigger| Run
+```
+
+- **CI/CD**: GitHub Actions automatically builds and deploys the app on every push to the `main` branch.
+- **Serverless**: Runs on Google Cloud Run (fully managed serverless container).
+- **Automation**: Google Cloud Scheduler triggers the rate check every day at 9:00 AM (JST).
 
 ## 🏁 Getting Started
 
@@ -43,7 +63,6 @@ internal/
 
 - Go 1.23 or higher
 - Slack Webhook URL (for notifications)
-- Exchange Rates API Key (optional if using free tier logic)
 
 ### Installation
 
@@ -60,11 +79,18 @@ internal/
 
 3. Configure environment variables in `.env`:
    ```env
+   # Server
    APP_PORT=8080
+
+   # Currency
    BASE_CURRENCY=CAD
    TARGET_CURRENCY=JPY
-   EXCHANGE_RATE_API_URL=http://api.exchangeratesapi.io/v1/
-   EXCHANGE_RATE_API_KEY=your_api_key_here
+   
+   # API Provider (frankfurter or exchangerates)
+   API_PROVIDER=frankfurter
+   FRANKFURTER_API_URL=https://api.frankfurter.app/
+
+   # Slack
    SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx/yyy/zzz
    ```
 
