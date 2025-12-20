@@ -91,7 +91,9 @@ graph LR
    FRANKFURTER_API_URL=https://api.frankfurter.app/
 
    # Slack
-   SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx/yyy/zzz
+   # Example (do not commit real values). Set this in your local `.env` or Cloud Run env vars:
+   # SLACK_WEBHOOK_URL=YOUR_SLACK_WEBHOOK_URL
+   SLACK_WEBHOOK_URL=
    ```
 
 ### Running the Application

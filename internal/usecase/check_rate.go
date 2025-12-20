@@ -8,7 +8,7 @@ import (
 
 // RateCheckUsecase is the interface for the rate check usecase
 type RateCheckUsecase interface {
-	CheckRates(base, target string) (*CheckRateResult, error)
+	CheckRates(base, target string, forceNotify bool) (*CheckRateResult, error)
 }
 
 // CheckRateResult is the result of checking the rate
@@ -31,7 +31,7 @@ func NewRateChecker(repo rate.Repository, notifier rate.Notifier) *RateChecker {
 	}
 }
 
-func (r *RateChecker) CheckRates(base, target string) (*CheckRateResult, error) {
+func (r *RateChecker) CheckRates(base, target string, forceNotify bool) (*CheckRateResult, error) {
 	today := time.Now()
 	yesterday := today.AddDate(0, 0, -1)
 
@@ -45,27 +45,38 @@ func (r *RateChecker) CheckRates(base, target string) (*CheckRateResult, error) 
 		return nil, fmt.Errorf("failed to fetch yesterday's rate: %w", err)
 	}
 
-	if todayRate.Value < yesterdayRate.Value {
-		msg := fmt.Sprintf(
-			"JPY Stronger Alert! %s/%s: Yesterday %.4f -> Today %.4f",
+	result := &CheckRateResult{
+		TodayRate:     todayRate.Value,
+		YesterdayRate: yesterdayRate.Value,
+		IsNotified:    false,
+	}
+
+	shouldNotify := forceNotify || (todayRate.Value < yesterdayRate.Value)
+	if !shouldNotify {
+		return result, nil
+	}
+
+	msg := fmt.Sprintf(
+		"JPY Stronger Alert! %s/%s: Yesterday %.4f -> Today %.4f",
+		base,
+		target,
+		yesterdayRate.Value,
+		todayRate.Value,
+	)
+	if forceNotify && !(todayRate.Value < yesterdayRate.Value) {
+		msg = fmt.Sprintf(
+			"Test Notification (forced). %s/%s: Yesterday %.4f -> Today %.4f",
 			base,
 			target,
 			yesterdayRate.Value,
 			todayRate.Value,
 		)
-		err := r.Notifier.Notify(msg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to notify: %w", err)
-		}
-		return &CheckRateResult{
-			TodayRate:     todayRate.Value,
-			YesterdayRate: yesterdayRate.Value,
-			IsNotified:    true,
-		}, nil
 	}
-	return &CheckRateResult{
-		TodayRate:     todayRate.Value,
-		YesterdayRate: yesterdayRate.Value,
-		IsNotified:    false,
-	}, nil
+
+	if err := r.Notifier.Notify(msg); err != nil {
+		return nil, fmt.Errorf("failed to notify: %w", err)
+	}
+
+	result.IsNotified = true
+	return result, nil
 }
