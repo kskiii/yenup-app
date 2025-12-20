@@ -2,6 +2,7 @@ package rate
 
 import (
 	"net/http"
+	"strconv"
 	"yenup/internal/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,8 @@ type RateData struct {
 func (h *RateHandler) CheckRate(c *gin.Context) {
 	base := c.Query("base")
 	target := c.Query("target")
+	// If notification=true, force sending a Slack message for testing/verification.
+	notificationRaw := c.Query("notification")
 
 	if base == "" || target == "" {
 		c.JSON(http.StatusBadRequest, Response{
@@ -50,8 +53,22 @@ func (h *RateHandler) CheckRate(c *gin.Context) {
 		return
 	}
 
+	forceNotify := false
+	if notificationRaw != "" {
+		parsed, err := strconv.ParseBool(notificationRaw)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, Response{
+				Status:  "error",
+				Message: "notification must be a boolean (true/false)",
+				Data:    nil,
+			})
+			return
+		}
+		forceNotify = parsed
+	}
+
 	// use usecase to check the rate
-	result, err := h.Usecase.CheckRates(base, target)
+	result, err := h.Usecase.CheckRates(base, target, forceNotify)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{
 			Status:  "error",
